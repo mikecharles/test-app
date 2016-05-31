@@ -1,0 +1,38 @@
+language: python
+sudo: required
+python:
+  - "3.5"
+install:
+  # Install miniconda
+  - wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
+  - bash miniconda.sh -b -p $HOME/miniconda
+  - export PATH="$HOME/miniconda/bin:$PATH"
+  - hash -r
+  - conda config --set always_yes yes --set changeps1 no
+  - conda update -q conda
+  - conda install nomkl
+  - conda info -a
+  # Create a conda environment with python 2 (for ansible)
+  - conda create -q -n ansible-env python=2
+  # Create a conda environment with python X above (for the app)
+  - conda create -q -n app-env python=$TRAVIS_PYTHON_VERSION
+  # Activate the app-env environment and install testing dependencies
+  - source activate app-env
+  - pip install pytest pytest-cov
+  # Activate the ansible-env environment and install Ansible
+  - source activate ansible-env
+  - pip install ansible
+  # Add ansible.cfg to setup roles path.
+  - printf '[defaults]\nroles_path = ../' > ansible.cfg
+  # Install Ansible roles
+  - ansible-galaxy install noaa-nws-cpc.miniconda-role
+  # Deploy this app with Ansible
+  - ansible-playbook -i "localhost," --connection local deployment/deploy.yml
+  # Install this app
+  - source activate app-env
+  - conda install --file conda-requirements.txt
+  - pip install -r pip-requirements.txt
+  - pip install -e .
+script: 
+  - py.test
+  - py.test --cov=python_skeleton

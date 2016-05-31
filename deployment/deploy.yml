@@ -1,0 +1,55 @@
+# Ansible deployment playbook
+---
+  # ------------------------------------------------------------------------------------------------
+  # Hosts to deploy to (set to all if you want to be able to just limit installation to specific
+  # hosts using the `--limit` arg to `ansible-playbook`.
+  #
+  - hosts: all
+    # ----------------------------------------------------------------------------------------------
+    # Files containing additional variables
+    #
+    vars_files:
+      - vars.yml
+    # ----------------------------------------------------------------------------------------------
+    # Ansible roles
+    #
+    # One or more roles may be from Ansible Galaxy (ansible-galaxy install <user.role>)
+    #
+    roles:
+      - role: noaa-nws-cpc.miniconda-role
+    # ----------------------------------------------------------------------------------------------
+    # Tasks
+    #
+    tasks:
+    - name: Check that conda is installed
+      command: which {{ miniconda_prefix }}/bin/conda
+      register: conda_installed
+    - fail: msg="conda not installed/defined on target machine..."
+      when: "conda_installed.rc != 0"
+    - name: Clone/pull from the {{ branch }} branch of the repo
+      git: >
+        repo={{ repo }}
+        dest={{ app_dir }}
+        force=yes
+        accept_hostkey=yes
+        key_file=~/.ssh/id_rsa
+        version={{ branch }}
+    - name: Clean any untracked files in the repo
+      command: git clean -fd chdir={{ app_dir }}
+      register: git_clean
+      changed_when: "git_clean.stdout != ''"
+    - name: Create a conda virtual environment (including dependencies in conda-requirements.txt)
+      command: "{{ miniconda_prefix }}/bin/conda create --yes -p {{ virtualenv_dir }} --file={{ app_dir }}/conda-requirements.txt python={{ python_version }}"
+      failed_when: "conda_created.rc != 0"
+      register: conda_created
+    - name: Install remaining pip requirements (in pip-requirements.txt)
+      pip: >
+        virtualenv={{ virtualenv_dir }}
+        requirements={{ app_dir }}/pip-requirements.txt
+        extra_args={{ extra_pip_args }}
+    - name: Install application in the virtual environment
+      pip: >
+        virtualenv={{ virtualenv_dir }}
+        name={{ app_dir }}
+        extra_args='{{ extra_pip_args }} -e'
+...

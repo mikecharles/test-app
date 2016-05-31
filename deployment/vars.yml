@@ -1,0 +1,30 @@
+# Ansible global variables
+---
+# --------------------------------------------------------------------------------------------------
+# Set these variables for your app
+#
+# Name of your app (only use letters, numbers, dashes, or underscores)
+app_name: python-skeleton
+# Parent directory to contain your app(s)
+app_parent_dir: "{{ HOME }}/apps"
+# Git repository containing your app (if public, use HTTPS version)
+repo: https://github.com/noaa-nws-cpc/python-skeleton.git
+# Git branch to deploy
+branch: master
+# Version of Python to install in the virtual environment
+python_version: 3.5
+# Extra pip arguments to use when installing Python packages with pip - alternatively these can
+# be defined in ~/.pip/pip.conf
+extra_pip_args: ''
+# --------------------------------------------------------------------------------------------------
+# These can usually be left alone
+#
+# $HOME environment variable on the receiving machine
+HOME: "{{ ansible_env.HOME }}"
+# Directory where your app will be installed
+app_dir: "{{ app_parent_dir }}/{{ app_name }}"
+# Directory where the Python virtual environment will be created
+virtualenv_dir: "{{ app_dir }}/venv"
+miniconda_python: 3
+miniconda_prefix: "{{ ansible_env.HOME }}/miniconda"
+...
